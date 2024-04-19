@@ -125,10 +125,17 @@ public class MaintenanceInstructionController : MonoBehaviour
         Bounds objectBounds = objectMeshRenderer.bounds;
         Vector3 objectSize = objectBounds.size;
 
-        Vector3 objectPosition = currentObject.transform.position;
+        // Vector3 objectPosition = currentObject.transform.position;
 
-        Vector3 bottomLeftFront = objectPosition - currentObject.transform.right * (objectSize.x / 2f) - currentObject.transform.up * (objectSize.y / 2f) - currentObject.transform.forward * (objectSize.z / 2f);
+        // Vector3 bottomLeftFront = objectPosition - currentObject.transform.right * (objectSize.x / 2f) - currentObject.transform.up * (objectSize.y / 2f) - currentObject.transform.forward * (objectSize.z / 2f);
 
+        RectTransform rf = currentObject.GetComponent<RectTransform>();
+
+        Vector3 objectPosition = rf.position;
+        objectPosition.x - rf.rect.size.x * rf.lossyScale.x/2f
+        objectPosition.y - rf.rect.size.y * rf.lossyScale.y/2f
+        //Vector3 bottomLeftFront = objectPosition - currentObject.transform.right * (objectSize.x / 2f) - currentObject.transform.up * (objectSize.y / 2f) - currentObject.transform.forward * (objectSize.z / 2f);
+        Vector3 bottomLeftFront = (objectPosition.x - rf.rect.size.x * rf.lossyScale.x/2f,objectPosition.y - rf.rect.size.y * rf.lossyScale.y/2f,objectPosition.z);
         connectLine.SetPosition(0, bottomLeftFront);
         connectLine.SetPosition(1, orientedReticle.transform.position);
         // currentObject.transform.rotation = rootObject.transform.rotation * objectData.rotation;
