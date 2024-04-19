@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 0
+    path: Assets/ARRealismDemos/DemoCarousel/Scenes/DemoCarousel.unity
+    guid: 766c2ceaa8d1c494a8bb92af31d1959a
+  - enabled: 0
+    path: Assets/ARRealismDemos/OrientedReticle/Scenes/OrientedReticle.unity
+    guid: e4d4899cf4162600b96557cbcb92f659
+  - enabled: 0
+    path: Assets/ARRealismDemos/DepthEffects/Scenes/DepthEffects.unity
+    guid: 65365f54d55fd4b5eb22f167405f3a0b
+  - enabled: 0
+    path: Assets/ARRealismDemos/Collider/Scenes/Collider.unity
+    guid: d8bd5809be756448b85d842695697f2e
+  - enabled: 0
+    path: Assets/ARRealismDemos/AvatarLocomotion/Scenes/AvatarLocomotion.unity
+    guid: cea3ffb74b8f146cabf629af038f0f1a
+  - enabled: 0
+    path: Assets/ARRealismDemos/PointCloud/Scenes/RawPointClouds.unity
+    guid: 9dda67f2895da44a2a949d2298c7ff3a
+  - enabled: 0
+    path: Assets/ARRealismDemos/ARLine/ARLine.unity
+    guid: 0f4a1a5042b5a7247b97fd7ee4576414
+  - enabled: 0
+    path: Assets/ARRealismDemos/ARLine/interaction.unity
+    guid: 22f684dfd181ed74183bb64a7ec108a2
+  - enabled: 1
+    path: Assets/ARRealismDemos/ARLine/savePosition.unity
+    guid: 2edd2c46f06349347b2817a4955d261b
+  - enabled: 0
+    path: Assets/ARRealismDemos/ARLine/UniWebViewDemo.unity
+    guid: 938c077f40a814d4584ce2ad17947cf3
+  m_configObjects:
+    Unity.XR.WindowsMR.Settings: {fileID: 11400000, guid: 744b813df90924c169af73489b8325de,
+      type: 2}
+    UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: e5f33096da05e6f4680b6652532af49c,
+      type: 2}
+    UnityEditor.XR.ARKit.ARKitSettings: {fileID: 11400000, guid: fe0c2ea38052fb94ba4226982c152e6d,
+      type: 2}
+    com.unity.xr.arcore.PlayerSettings: {fileID: 11400000, guid: c2f7b8d7c0bff4d10874cbcf3f24af78,
+      type: 2}
+    com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: 6769871338ac6964e87b697ef1607aa3,
+      type: 2}
+    com.unity.xr.arkit.PlayerSettings: {fileID: 11400000, guid: b27ec7d82a91a48e69fd689ad6808e5e,
+      type: 2}
+    com.unity.xr.magicleap.magic_leap_settings: {fileID: 11400000, guid: 1eb95d77acb39444e8cf44313496a874,
+      type: 2}
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 54b043e9311011749a17c49d169c9be3,
+      type: 2}
