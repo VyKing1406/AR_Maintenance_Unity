@@ -10,6 +10,7 @@ using UnityEngine.Networking;
 using System.Text;
 using UnityEngine.SceneManagement;
 using TMPro;
+using Newtonsoft.Json;
 using System.Threading.Tasks;
 using UnityEditor;
 
@@ -32,35 +33,17 @@ public class MaintenanceInstructionController : MonoBehaviour
     private int isEdit = 0;
     private int isSave = 0;
     private float transitionTime = 0.5f; // Thời gian chuyển cảnh
-    private int currentIndex = 0;
     public GameObject currentObject;
-    private List<ObjectTransform> objectTransforms;
-    private string serverURL = "http://192.168.1.12:8080/api/object/transform";
+    private string serverURL = "http://localhost:8080/api/object/transform";
     private TouchScreenKeyboard keyboard;
 
     private async void Start()
     {
-        string apiUrl = "http://192.168.1.12:8080/api/object/transform/1";
-        // Task<string> response = 
-        string data = await APICallerHelper.GetData(apiUrl);
-        data = "{\"data\":" + data + "}";
-        objectTransforms = JsonParser.ParseJson(data);
         connectLine.positionCount = 2;
         this.orientedReticleCreate.SetActive(false);
         DisplayObjectAtIndex();
     }
 
-    public IEnumerator<object> FetchData(string url) {
-        UnityWebRequest webRed = UnityWebRequest.Get(url);
-        yield return webRed.SendWebRequest();
-        if(webRed.result == UnityWebRequest.Result.ConnectionError || webRed.result == UnityWebRequest.Result.Success) {
-            Debug.Log(webRed.error);
-        }
-        else {
-            string data = "{\"data\":" + webRed.downloadHandler.text + "}";
-            objectTransforms = JsonParser.ParseJson(data);
-        }
-    }
 
     private void Update()
     {
@@ -91,15 +74,16 @@ public class MaintenanceInstructionController : MonoBehaviour
             if(gameObjectSelected == doneButton) {
                 handleDoneButtonClick();
             }
-            if (Input.touchCount == 2) {
-                Rescale();
-            }
-            
         }
         if(isEdit == 1) {
             maintenanceInstruction.text = keyboard.text;
         }
         currentObject.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
+        RectTransform rf = currentObject.GetComponent<RectTransform>();
+
+        Vector3 objectPosition = rf.position;
+        Vector3 bottomLeftFront = new Vector3(objectPosition.x - rf.rect.size.x * rf.lossyScale.x/2f, objectPosition.y - rf.rect.size.y * rf.lossyScale.y/2f, objectPosition.z);
+        connectLine.SetPosition(0, bottomLeftFront);
     }
 
     public void handleDropOrient() {
@@ -114,20 +98,15 @@ public class MaintenanceInstructionController : MonoBehaviour
         if(currentObject == null) {
             currentObject = new GameObject();
         }
-        ObjectData objectData = new ObjectData(objectTransforms[this.currentIndex]);
+        ObjectData objectData = new ObjectData(DataControler.objectTransforms[DataControler.currentIndex]);
 
-        // Đặt vị trí, quay và tỷ lệ của đối tượng 3D
         currentObject.transform.position = rootObject.transform.TransformPoint(objectData.position) + new Vector3(1f, 1f, 1f);
         orientedReticle.transform.position = rootObject.transform.TransformPoint(objectData.position);
-        
 
-        MeshRenderer objectMeshRenderer = currentObject.GetComponent<MeshRenderer>();
-        Bounds objectBounds = objectMeshRenderer.bounds;
-        Vector3 objectSize = objectBounds.size;
+        RectTransform rf = currentObject.GetComponent<RectTransform>();
 
-        Vector3 objectPosition = currentObject.transform.position;
-
-        Vector3 bottomLeftFront = objectPosition - currentObject.transform.right * (objectSize.x / 2f) - currentObject.transform.up * (objectSize.y / 2f) - currentObject.transform.forward * (objectSize.z / 2f);
+        Vector3 objectPosition = rf.position;
+        Vector3 bottomLeftFront = new Vector3(objectPosition.x - rf.rect.size.x * rf.lossyScale.x/2f, objectPosition.y - rf.rect.size.y * rf.lossyScale.y/2f, objectPosition.z);
 
         connectLine.SetPosition(0, bottomLeftFront);
         connectLine.SetPosition(1, orientedReticle.transform.position);
@@ -137,20 +116,19 @@ public class MaintenanceInstructionController : MonoBehaviour
         TextMeshProUGUI textMeshPro = maintenanceInstruction.GetComponentInChildren<TextMeshProUGUI>();
         if (textMeshPro != null)
         {
-            textMeshPro.text = objectTransforms[this.currentIndex].maintenanceInstruction;
+            textMeshPro.text = DataControler.objectTransforms[DataControler.currentIndex].maintenanceInstruction;
         }
 
         textMeshPro = maintenanceIndex.GetComponentInChildren<TextMeshProUGUI>();
         if (textMeshPro != null)
         {
-            textMeshPro.text = objectTransforms[this.currentIndex].index.ToString();
+            textMeshPro.text = DataControler.objectTransforms[DataControler.currentIndex].index.ToString();
         }
     }
 
 
     public void handleDoneButtonClick()
     {
-        Debug.Log("handleDoneButton");
         StartCoroutine(TransitionToNextObject());
     }
 
@@ -160,11 +138,11 @@ public class MaintenanceInstructionController : MonoBehaviour
         yield return new WaitForSeconds(transitionTime);
 
         // Tăng chỉ số hiện tại lên 1 và kiểm tra nếu vượt quá giới hạn của mảng
-        this.currentIndex++;
-        if (this.currentIndex >= this.objectTransforms.Count)
+        DataControler.currentIndex++;
+        if (DataControler.currentIndex >= DataControler.objectTransforms.Count)
         {
             // Reset chỉ số về 0 nếu đã đến cuối danh sách
-            this.currentIndex = 0;
+            DataControler.currentIndex = 0;
         }
 
         // Hiển thị đối tượng tiếp theo
@@ -174,16 +152,6 @@ public class MaintenanceInstructionController : MonoBehaviour
 
     public void createNewMaintenanceMessage()
     {
-        // Vector3 createPosition = new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, 0f);
-        // Vector2Int depthXY = DepthSource.ScreenToDepthXY(
-        //     (int)(Screen.width * 0.5f), (int)(Screen.height * 0.5f));
-        // float realDepth = DepthSource.GetDepthFromXY(depthXY.x, depthXY.y, DepthSource.DepthArray);
-        // if(0f > realDepth && realDepth > 4f) {
-        //     realDepth = 1f;
-        // }
-        // createPosition.z = realDepth;
-        // Vector3 worldPosition = DepthSource.ARCamera.ScreenToWorldPoint(createPosition);
-
         orientedReticle.transform.position = orientedReticleCreate.transform.position;
 
         Quaternion rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
@@ -205,7 +173,7 @@ public class MaintenanceInstructionController : MonoBehaviour
         textMeshPro = maintenanceIndex.GetComponentInChildren<TextMeshProUGUI>();
         if (textMeshPro != null)
         {
-            textMeshPro.text = objectTransforms.Count.ToString();
+            textMeshPro.text = DataControler.objectTransforms.Count.ToString();
         }
         currentObject.SetActive(true);
     }
@@ -218,21 +186,37 @@ public class MaintenanceInstructionController : MonoBehaviour
         Vector3 objectRelativePosition = objectRelativeTransform.GetColumn(3);
         Quaternion objectRelativeRotation = Quaternion.LookRotation(objectRelativeTransform.GetColumn(2), objectRelativeTransform.GetColumn(1));
         Vector3 objectRelativeScale = new Vector3(objectRelativeTransform.GetColumn(0).magnitude, objectRelativeTransform.GetColumn(1).magnitude, objectRelativeTransform.GetColumn(2).magnitude);
-        ObjectData objectData = new ObjectData();
-        objectData.position = objectRelativePosition;
-        objectData.rotation = objectRelativeRotation;
-        objectData.scale = new Vector3(0.09f, 0.03f, 1f);
-        SendDataToServer(objectData);
+        
+        
+        ObjectTransform newObject = new ObjectTransform();
+
+        // newObject.stationId = 1;
+        newObject.positionX = objectRelativePosition.x; 
+        newObject.positionY = objectRelativePosition.y; 
+        newObject.positionZ = objectRelativePosition.z; 
+        newObject.rotationX = objectRelativeRotation.x;  
+        newObject.rotationY = objectRelativeRotation.y;  
+        newObject.rotationZ = objectRelativeRotation.z;  
+        newObject.rotationW = objectRelativeRotation.w;  
+        newObject.scaleX = 0.08f;
+        newObject.scaleY = 0.03f;
+        newObject.scaleZ = 1f;
+        // newObject.maintenanceInstruction  = 
+        // newObject.sensorDevice.id = 
+
+
+        SendDataToServer(newObject);
+
+        DataControler.objectTransforms.Add(newObject);
     }
 
 
-    private void SendDataToServer(ObjectData objectData)
+    private void SendDataToServer(ObjectTransform newObject)
     {
-        string jsonData = ConvertObjectToJson(objectData);
-        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(serverURL);
+        HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://localhost:8080/api/object/transform");
         request.Method = "POST";
         request.ContentType = "application/json";
-
+        string jsonData = JsonConvert.SerializeObject(newObject);
         var postData = Encoding.ASCII.GetBytes(jsonData);
         request.ContentLength = postData.Length;
         using (var stream = request.GetRequestStream())
@@ -244,75 +228,10 @@ public class MaintenanceInstructionController : MonoBehaviour
         {
             // Xử lý phản hồi từ server (nếu cần)
         }
-
     }
-    private float initialDistance;
-    private Vector3 initialScale;
-    private float currentScale;
-    public float maxObjectScale = 3f;
-    public float minObjectScale = 1f;
-    void Rescale()
-    {
-        if (Input.touchCount > 0)
-        {
-            Touch touchZero = Input.GetTouch(0);
-            Touch touchOne = Input.GetTouch(1);
-
-            if (touchZero.phase == TouchPhase.Ended || touchZero.phase == TouchPhase.Canceled ||
-                touchOne.phase == TouchPhase.Ended || touchOne.phase == TouchPhase.Canceled)
-                return;
-
-            if (touchZero.phase == TouchPhase.Began || touchOne.phase == TouchPhase.Began)
-            {
-                initialDistance = Vector2.Distance(touchZero.position, touchOne.position);
-                initialScale = currentObject.transform.localScale;
-            } else {
-                float currentDistance = Vector2.Distance(touchZero.position, touchOne.position);
-
-                if (Mathf.Approximately(initialDistance, 0))
-                    return;
-
-                float factor = currentDistance / initialDistance;
-                float newScale = initialScale.x * factor;
-                newScale = Mathf.Clamp(newScale, minObjectScale, maxObjectScale);
-                currentObject.transform.localScale = new Vector3(newScale, newScale, newScale);
-            }
-            currentScale = currentObject.transform.localScale.x;
-        }
-    }
-
-
-
 
     private void OnDestroy()
     {
         // SaveDataToFile
-    }
-
-
-    private string ConvertObjectToJson(ObjectData objectData)
-    {
-        string positionJson = ConvertVector3PositionToJson(objectData.position);
-        string rotationJson = ConvertQuaternionToJson(objectData.rotation);
-        string scaleJson = ConvertVector3ScaleToJson(objectData.scale);
-        string message = maintenanceInstruction.text;
-
-        return $"{{{positionJson},{rotationJson},{scaleJson},\"maintenanceInstruction\": \"{message}\"}}";
-    }
-
-    private string ConvertVector3PositionToJson(Vector3 vector3)
-    {
-        return $"\"positionX\":{vector3.x},\"positionY\":{vector3.y},\"positionZ\":{vector3.z}";
-    }
-
-    private string ConvertQuaternionToJson(Quaternion quaternion)
-    {
-        return $"\"rotationX\":{quaternion.x},\"rotationY\":{quaternion.y},\"rotationZ\":{quaternion.z},\"rotationW\":{quaternion.w}";
-    }
-
-
-    private string ConvertVector3ScaleToJson(Vector3 vector3)
-    {
-        return $"\"scaleX\":{vector3.x},\"scaleY\":{vector3.y},\"scaleZ\":{vector3.z}";
     }
 }
