@@ -18,6 +18,7 @@ public class MaintenanceInstructionController : MonoBehaviour
 {
     [SerializeField] public GameObject rootObject;
     [SerializeField] public GameObject objectPrefab;
+    public MaintenanceFormControler maintenanceFormControler;
     public GameObject orientedReticle;
     public GameObject orientedReticleCreate;
     public GameObject editButton;
@@ -49,49 +50,128 @@ public class MaintenanceInstructionController : MonoBehaviour
     {
         if (Input.touchCount > 0)
         {
-            GameObject gameObjectSelected = RaycastSelection.StartSelect();
+            // GameObject gameObjectSelected = RaycastSelection.StartSelect();
             
-            if(gameObjectSelected == createButton && this.isCreate == 0 && this.isEdit == 0) {
-                this.isCreate = 1;
-                currentObject.SetActive(false);
-                orientedReticleCreate.SetActive(true);
-                dropButton.SetActive(true);
-            }
+            // if(gameObjectSelected == createButton && this.isCreate == 0 && this.isEdit == 0) {
+            //     this.isCreate = 1;
+            //     currentObject.SetActive(false);
+            //     orientedReticleCreate.SetActive(true);
+            //     dropButton.SetActive(true);
+            // }
 
-            if(gameObjectSelected == editButton && isEdit == 0) {
-                isEdit = 1;
-                keyboard = TouchScreenKeyboard.Open("", TouchScreenKeyboardType.Default); 
-            }
+            // if(gameObjectSelected == editButton && isEdit == 0) {
+            //     isEdit = 1;
+            //     keyboard = TouchScreenKeyboard.Open("", TouchScreenKeyboardType.Default); 
+            // }
 
-            if(gameObjectSelected == saveButton && isEdit == 1) {
-                isEdit = 0;
-                saveMaintenanceMessage();
-                DisplayObjectAtIndex();
-                currentObject.SetActive(true);
-            }
+            // if(gameObjectSelected == saveButton && isEdit == 1) {
+            //     isEdit = 0;
+            //     saveMaintenanceMessage();
+            //     DisplayObjectAtIndex();
+            //     currentObject.SetActive(true);
+            // }
 
 
-            if(gameObjectSelected == doneButton) {
-                handleDoneButtonClick();
-            }
+            // if(gameObjectSelected == doneButton) {
+            //     handleDoneButtonClick();
+            // }
         }
-        if(isEdit == 1) {
-            maintenanceInstruction.text = keyboard.text;
-        }
-        currentObject.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
-        RectTransform rf = currentObject.GetComponent<RectTransform>();
+        // if(isEdit == 1) {
+        //     maintenanceInstruction.text = keyboard.text;
+        // }
+        // currentObject.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
+        // RectTransform rf = currentObject.GetComponent<RectTransform>();
 
-        Vector3 objectPosition = rf.position;
-        Vector3 bottomLeftFront = new Vector3(objectPosition.x - rf.rect.size.x * rf.lossyScale.x/2f, objectPosition.y - rf.rect.size.y * rf.lossyScale.y/2f, objectPosition.z);
-        connectLine.SetPosition(0, bottomLeftFront);
+        // Vector3 objectPosition = rf.position;
+        // Vector3 bottomLeftFront = new Vector3(objectPosition.x - rf.rect.size.x * rf.lossyScale.x/2f, objectPosition.y - rf.rect.size.y * rf.lossyScale.y/2f, objectPosition.z);
+        // connectLine.SetPosition(0, bottomLeftFront);
     }
 
-    public void handleDropOrient() {
-        createNewMaintenanceMessage();
+    public void CreateMaintenanceHandle() {
+        currentObject.SetActive(false);
+        orientedReticleCreate.SetActive(true);
+        dropButton.SetActive(true);
+    }
+
+
+    public void CreateOrientCHandle() {
+        CreateNewMaintenanceMessage();
         this.dropButton.SetActive(false);
         this.orientedReticleCreate.SetActive(false);
-        this.isCreate = 0;
+        this.maintenanceFormControler.SetObjectTransfrom(CreateObjectTransform("This is the message instruction", DataControler.objectTransforms.Count));
+        this.maintenanceFormControler.SetUpForm();
+        this.maintenanceFormControler.SetFormType(FormType.Create);
+        this.maintenanceFormControler.gameObject.SetActive(true);
     }
+
+    public void CreateNewMaintenanceMessage()
+    {
+        Quaternion rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
+        currentObject.transform.position = orientedReticleCreate.transform.position + new Vector3(1f, 1f, 1f);
+        currentObject.transform.rotation = rotation;
+        
+        
+        connectLine.SetPosition(0, orientedReticleCreate.transform.position);
+        connectLine.SetPosition(1, currentObject.transform.position);
+
+
+        TextMeshProUGUI textMeshPro = maintenanceInstruction.GetComponentInChildren<TextMeshProUGUI>();
+        if (textMeshPro != null)
+        {
+            textMeshPro.text = "This is the message instruction";
+        }
+
+        textMeshPro = maintenanceIndex.GetComponentInChildren<TextMeshProUGUI>();
+        if (textMeshPro != null)
+        {
+            textMeshPro.text = DataControler.objectTransforms.Count.ToString();
+        }
+        currentObject.SetActive(true);
+    }
+
+    public ObjectTransform CreateObjectTransform(string maintenanceInstruction, int index) {
+        Matrix4x4 qrTransform = rootObject.transform.localToWorldMatrix;
+        Matrix4x4 objectTransform = currentObject.transform.localToWorldMatrix;
+        Matrix4x4 objectRelativeTransform = qrTransform.inverse * objectTransform;
+        Vector3 objectRelativePosition = objectRelativeTransform.GetColumn(3);
+        Quaternion objectRelativeRotation = Quaternion.LookRotation(objectRelativeTransform.GetColumn(2), objectRelativeTransform.GetColumn(1));
+        Vector3 objectRelativeScale = new Vector3(objectRelativeTransform.GetColumn(0).magnitude, objectRelativeTransform.GetColumn(1).magnitude, objectRelativeTransform.GetColumn(2).magnitude);
+        
+        
+        ObjectTransform newObject = new ObjectTransform();
+
+        // newObject.stationId = 1;
+        newObject.positionX = objectRelativePosition.x; 
+        newObject.positionY = objectRelativePosition.y; 
+        newObject.positionZ = objectRelativePosition.z; 
+        newObject.rotationX = objectRelativeRotation.x;  
+        newObject.rotationY = objectRelativeRotation.y;  
+        newObject.rotationZ = objectRelativeRotation.z;  
+        newObject.rotationW = objectRelativeRotation.w;  
+        newObject.scaleX = 0.08f;
+        newObject.scaleY = 0.03f;
+        newObject.scaleZ = 1f;
+        newObject.maintenanceInstruction = maintenanceInstruction;
+        newObject.index = index;
+        return newObject;
+    }
+
+    public void UpdateMaintenanceHandle() {
+        currentObject.SetActive(false);
+        orientedReticleCreate.SetActive(true);
+        dropButton.SetActive(true);
+    }
+
+    public void UpdateOrientCHandle() {
+        this.dropButton.SetActive(false);
+        this.orientedReticleCreate.SetActive(false);
+        this.maintenanceFormControler.SetObjectTransfrom(CreateObjectTransform(this.maintenanceInstruction.text, DataControler.currentIndex));
+        this.maintenanceFormControler.SetUpForm();
+        this.maintenanceFormControler.SetFormType(FormType.Update);0
+        this.maintenanceFormControler.gameObject.SetActive(true);
+    }
+
+
 
     public void DisplayObjectAtIndex()
     {
@@ -127,8 +207,7 @@ public class MaintenanceInstructionController : MonoBehaviour
     }
 
 
-    public void handleDoneButtonClick()
-    {
+    public void handleDoneButtonClick() {
         StartCoroutine(TransitionToNextObject());
     }
 
@@ -150,33 +229,6 @@ public class MaintenanceInstructionController : MonoBehaviour
     }
 
 
-    public void createNewMaintenanceMessage()
-    {
-        orientedReticle.transform.position = orientedReticleCreate.transform.position;
-
-        Quaternion rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
-        currentObject.transform.position = orientedReticleCreate.transform.position + new Vector3(1f, 1f, 1f);
-        currentObject.transform.rotation = rotation;
-        
-        
-        connectLine.SetPosition(0, orientedReticleCreate.transform.position);
-        connectLine.SetPosition(1, currentObject.transform.position);
-
-
-
-        TextMeshProUGUI textMeshPro = maintenanceInstruction.GetComponentInChildren<TextMeshProUGUI>();
-        if (textMeshPro != null)
-        {
-            textMeshPro.text = "This is the message instruction";
-        }
-
-        textMeshPro = maintenanceIndex.GetComponentInChildren<TextMeshProUGUI>();
-        if (textMeshPro != null)
-        {
-            textMeshPro.text = DataControler.objectTransforms.Count.ToString();
-        }
-        currentObject.SetActive(true);
-    }
 
     public void saveMaintenanceMessage() {
 
