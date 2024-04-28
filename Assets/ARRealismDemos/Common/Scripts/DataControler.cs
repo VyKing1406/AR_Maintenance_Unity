@@ -36,6 +36,7 @@ public class ObjectTransform
     public float scaleY { get; set; }
     public float scaleZ { get; set; }
     public string maintenanceInstruction { get; set; }
+    public string videoUrl {get; set;}
     public List<Comment> comments { get; set; }
     public SensorDevice sensorDevice { get; set; }
 }
@@ -75,15 +76,25 @@ public class ObjectData
 public class DataControler : MonoBehaviour
 {
     public static List<ObjectTransform> objectTransforms;
+    public static List<SensorDevice> sensorDevices;
+    public static SensorDevice currentSensorDevice;
     public static int currentIndex = 0;
+    private string apiUrl = "http://localhost:8080/api";
 
 
-
-    private async void Start()
+    private void Start()
     {
-        string apiUrl = "http://localhost:8080/api/object/transform/1";
-        string data = await APICallerHelper.GetData(apiUrl);
-        objectTransforms = JsonConvert.DeserializeObject<List<ObjectTransform>>(data);
+        ObjectTransformApi();
+    }
+
+    private async void ObjectTransformApi() {
+        string data = await APICallerHelper.GetData(apiUrl + "/object/transform/1");
+        DataControler.objectTransforms = JsonConvert.DeserializeObject<List<ObjectTransform>>(data);
+    }
+
+    private async void SensorDeviceApi() {
+        string data = await APICallerHelper.GetData(apiUrl + "/station/sensor");
+        DataControler.sensorDevices = JsonConvert.DeserializeObject<List<SensorDevice>>(data);
     }
 
 
