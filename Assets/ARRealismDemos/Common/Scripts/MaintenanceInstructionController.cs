@@ -18,10 +18,10 @@ public class MaintenanceInstructionController : MonoBehaviour
 {
     [SerializeField] public GameObject rootObject;
     [SerializeField] public GameObject objectPrefab;
-    public MaintenanceFormControler maintenanceFormControler;
-    public GameObject orientedReticle;
+    private MaintenanceFormControler maintenanceFormControler;
     public GameObject orientedReticleCreate;
     public GameObject editButton;
+    public GameObject form;
     public GameObject createButton;
     public GameObject saveButton;
     public GameObject doneButton;
@@ -35,51 +35,31 @@ public class MaintenanceInstructionController : MonoBehaviour
     private int isSave = 0;
     private float transitionTime = 0.5f; // Thời gian chuyển cảnh
     public GameObject currentObject;
-    private string serverURL = "http://localhost:8080/api/object/transform";
     private TouchScreenKeyboard keyboard;
 
     private async void Start()
     {
-        connectLine.positionCount = 2;
-        this.orientedReticleCreate.SetActive(false);
-        DisplayObjectAtIndex();
+        DataControler.DataReady += OnDataReady;
+    }
+
+    private void OnDataReady()
+    {
+        // Xử lý khi dữ liệu đã sẵn sàng
+        
+        if (DataControler.IsDataReady())
+        {
+            this.form.SetActive(false);
+            this.maintenanceFormControler = this.form.GetComponent<MaintenanceFormControler>();
+            connectLine.positionCount = 2;
+            this.orientedReticleCreate.SetActive(false);
+            DisplayObjectAtIndex();
+        }
     }
 
 
     private void Update()
     {
-        if (Input.touchCount > 0)
-        {
-            // GameObject gameObjectSelected = RaycastSelection.StartSelect();
-            
-            // if(gameObjectSelected == createButton && this.isCreate == 0 && this.isEdit == 0) {
-            //     this.isCreate = 1;
-            //     currentObject.SetActive(false);
-            //     orientedReticleCreate.SetActive(true);
-            //     dropButton.SetActive(true);
-            // }
-
-            // if(gameObjectSelected == editButton && isEdit == 0) {
-            //     isEdit = 1;
-            //     keyboard = TouchScreenKeyboard.Open("", TouchScreenKeyboardType.Default); 
-            // }
-
-            // if(gameObjectSelected == saveButton && isEdit == 1) {
-            //     isEdit = 0;
-            //     saveMaintenanceMessage();
-            //     DisplayObjectAtIndex();
-            //     currentObject.SetActive(true);
-            // }
-
-
-            // if(gameObjectSelected == doneButton) {
-            //     handleDoneButtonClick();
-            // }
-        }
-        // if(isEdit == 1) {
-        //     maintenanceInstruction.text = keyboard.text;
-        // }
-        // currentObject.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
+        currentObject.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
         // RectTransform rf = currentObject.GetComponent<RectTransform>();
 
         // Vector3 objectPosition = rf.position;
@@ -87,21 +67,38 @@ public class MaintenanceInstructionController : MonoBehaviour
         // connectLine.SetPosition(0, bottomLeftFront);
     }
 
-    public void CreateMaintenanceHandle() {
+    public void CreateButtonOnlcick() {
         currentObject.SetActive(false);
         orientedReticleCreate.SetActive(true);
         dropButton.SetActive(true);
+        DataControler.currentIndex = DataControler.objectTransforms.Count;
+        this.maintenanceFormControler.SetFormType(FormType.Create);
     }
 
 
-    public void CreateOrientCHandle() {
-        CreateNewMaintenanceMessage();
-        this.dropButton.SetActive(false);
-        this.orientedReticleCreate.SetActive(false);
-        this.maintenanceFormControler.SetObjectTransfrom(CreateObjectTransform("This is the message instruction", DataControler.objectTransforms.Count));
-        this.maintenanceFormControler.SetUpForm();
-        this.maintenanceFormControler.SetFormType(FormType.Create);
-        this.maintenanceFormControler.gameObject.SetActive(true);
+    public void EditButtonOnlcick() {
+        currentObject.SetActive(false);
+        orientedReticleCreate.SetActive(true);
+        dropButton.SetActive(true);
+        this.maintenanceFormControler.SetFormType(FormType.Update);
+    }
+
+    public void DropButtonOnclick() {
+        if(DataControler.currentIndex == DataControler.objectTransforms.Count) {
+            CreateNewMaintenanceMessage();
+            this.dropButton.SetActive(false);
+            this.orientedReticleCreate.SetActive(false);
+            this.maintenanceFormControler.SetObjectTransfrom(CreateObjectTransform("This is the message instruction", DataControler.objectTransforms.Count));
+            this.maintenanceFormControler.SetUpForm();
+            this.form.SetActive(true);
+        }
+        else {
+            this.dropButton.SetActive(false);
+            this.orientedReticleCreate.SetActive(false);
+            this.maintenanceFormControler.SetObjectTransfrom(CreateObjectTransform(this.maintenanceInstruction.text, DataControler.currentIndex));
+            this.maintenanceFormControler.SetUpForm();
+            this.form.SetActive(true);
+        }
     }
 
     public void CreateNewMaintenanceMessage()
@@ -156,20 +153,7 @@ public class MaintenanceInstructionController : MonoBehaviour
         return newObject;
     }
 
-    public void UpdateMaintenanceHandle() {
-        currentObject.SetActive(false);
-        orientedReticleCreate.SetActive(true);
-        dropButton.SetActive(true);
-    }
-
-    public void UpdateOrientCHandle() {
-        this.dropButton.SetActive(false);
-        this.orientedReticleCreate.SetActive(false);
-        this.maintenanceFormControler.SetObjectTransfrom(CreateObjectTransform(this.maintenanceInstruction.text, DataControler.currentIndex));
-        this.maintenanceFormControler.SetUpForm();
-        this.maintenanceFormControler.SetFormType(FormType.Update);0
-        this.maintenanceFormControler.gameObject.SetActive(true);
-    }
+    
 
 
 
@@ -181,7 +165,6 @@ public class MaintenanceInstructionController : MonoBehaviour
         ObjectData objectData = new ObjectData(DataControler.objectTransforms[DataControler.currentIndex]);
 
         currentObject.transform.position = rootObject.transform.TransformPoint(objectData.position) + new Vector3(1f, 1f, 1f);
-        orientedReticle.transform.position = rootObject.transform.TransformPoint(objectData.position);
 
         RectTransform rf = currentObject.GetComponent<RectTransform>();
 
@@ -189,7 +172,7 @@ public class MaintenanceInstructionController : MonoBehaviour
         Vector3 bottomLeftFront = new Vector3(objectPosition.x - rf.rect.size.x * rf.lossyScale.x/2f, objectPosition.y - rf.rect.size.y * rf.lossyScale.y/2f, objectPosition.z);
 
         connectLine.SetPosition(0, bottomLeftFront);
-        connectLine.SetPosition(1, orientedReticle.transform.position);
+        connectLine.SetPosition(1, rootObject.transform.TransformPoint(objectData.position));
         // currentObject.transform.rotation = rootObject.transform.rotation * objectData.rotation;
         currentObject.transform.localScale = objectData.scale;
 
@@ -207,7 +190,7 @@ public class MaintenanceInstructionController : MonoBehaviour
     }
 
 
-    public void handleDoneButtonClick() {
+    public void DoneButtonOnClick() {
         StartCoroutine(TransitionToNextObject());
     }
 

@@ -7,6 +7,7 @@ using System.Text;
 using UnityEngine.SceneManagement;
 using TMPro;
 using Newtonsoft.Json;
+using System;
 using UnityEditor;
 using System.Net;
 
@@ -29,28 +30,41 @@ public class MaintenanceFormControler : MonoBehaviour
     private State currentState;
     private FormType formType;
     private TouchScreenKeyboard keyboard;
-    private TextMeshProUGUI maintenanceInstructionText;
-    private TextMeshProUGUI videUrlText;
+    [SerializeField] public TextMeshProUGUI maintenanceInstructionText;
+    [SerializeField] public TextMeshProUGUI videUrlText;
+    [SerializeField] public Dropdown sensorDeviceDropdown;
     private TextMeshProUGUI formtypeText;
     private SensorDevice oldSensorDevice;
-    private Dropdown sensorDeviceDropdown;
     private ObjectTransform objectTransform;
 
     private async void Start() {
-        currentState = State.Nomal;
-        sensorDeviceDropdown = transform.GetComponent<Dropdown>();
-        setDropDownValue(DataControler.sensorDevices);
-        
-        sensorDeviceDropdown.onValueChanged.AddListener(OnDropdownValueChanged);
+        DataControler.DataReady += OnDataReady;
     }
 
-    public void setUpForm() {
+    private void OnDataReady()
+    {
+        // Xử lý khi dữ liệu đã sẵn sàng
+        if (DataControler.IsDataReady())
+        {
+            currentState = State.Nomal;
+            SetDropDownValue(DataControler.sensorDevices);
+            sensorDeviceDropdown.onValueChanged.AddListener(OnDropdownValueChanged);
+            SetUpForm();
+        }
+    }
+    
+    public void SetActiveForm(Boolean active) {
+        gameObject.SetActive(active);
+    }
+
+    public void SetUpForm() {
         currentState = State.Nomal;
         
         maintenanceInstructionText.text = objectTransform.maintenanceInstruction;
         videUrlText.text = objectTransform.videoUrl;
 
-        setInitialValueDropdown();
+
+        SetInitialValueDropdown();
     }
 
     private void Update() {
@@ -83,16 +97,12 @@ public class MaintenanceFormControler : MonoBehaviour
         keyboard = TouchScreenKeyboard.Open(initValue, TouchScreenKeyboardType.Default); 
     }
 
-    public void SetFormType(FormType formType) {
-        this.formType = formType;
-    }
-
     private void CloseKeyboard() {
         this.keyboard.active = false;
         this.keyboard = null;
     }
 
-    private void setDropDownValue(List<SensorDevice> sensorDevices) {
+    private void SetDropDownValue(List<SensorDevice> sensorDevices) {
         List<Dropdown.OptionData> dropdownOptions = new List<Dropdown.OptionData>();
 
         foreach (SensorDevice device in sensorDevices) {
@@ -107,28 +117,42 @@ public class MaintenanceFormControler : MonoBehaviour
         DataControler.currentSensorDevice = DataControler.sensorDevices[index];
     }
 
-    public void setInstructionState() {
+    public void InstructionFieldOnClick() {
         KeyboardOpen(this.maintenanceInstructionText.text);
         this.currentState = State.Instruction;
     }
 
-    public void setVideoUrlState() {
+    public void VideoUrlFieldOnClick() {
         KeyboardOpen(this.videUrlText.text);
         this.currentState = State.VideoUrl;
     }
 
-    public void setInitialValueDropdown() {
-        bool isDeviceExist = DataControler.sensorDevices.Contains(objectTransform.sensorDevice);
-
-        if (isDeviceExist)
-        {
-            // Lấy chỉ mục của sensorDevice trong danh sách listSensor
-            int index = DataControler.sensorDevices.IndexOf(objectTransform.sensorDevice);
+    public void SetInitialValueDropdown() {
+        if(objectTransform.sensorDevice == null) {
+            int index = 0;
 
             // Đặt giá trị ban đầu cho dropdown
             this.sensorDeviceDropdown.value = index;
-            this.oldSensorDevice = DataControler.currentSensorDevice;
+            this.oldSensorDevice = DataControler.sensorDevices[0];
+            DataControler.currentSensorDevice = DataControler.sensorDevices[0];
         }
+        else {
+            bool isDeviceExist = DataControler.sensorDevices.Contains(objectTransform.sensorDevice);
+
+            if (isDeviceExist)
+            {
+                // Lấy chỉ mục của sensorDevice trong danh sách listSensor
+                int index = DataControler.sensorDevices.IndexOf(objectTransform.sensorDevice);
+
+                // Đặt giá trị ban đầu cho dropdown
+                this.sensorDeviceDropdown.value = index;
+                this.oldSensorDevice = DataControler.currentSensorDevice;
+            }
+        }
+    }
+
+    public void SetFormType(FormType formType) {
+        this.formType = formType;
     }
 
     public void SetObjectTransfrom(ObjectTransform objectTransform) {
@@ -142,20 +166,19 @@ public class MaintenanceFormControler : MonoBehaviour
     }
 
     public void SubmitButtonOnclick() {
-        string url = "";
-        string jsonData = JsonConvert.SerializeObject(this.objectTransform);
         this.objectTransform.maintenanceInstruction = this.maintenanceInstructionText.text;
         this.objectTransform.videoUrl = this.videUrlText.text;
         this.objectTransform.sensorDevice = DataControler.currentSensorDevice;
-        if(formType == FormType.Create) {
-            url = "";
+        string jsonData = JsonConvert.SerializeObject(this.objectTransform);
+        if(this.formType == FormType.Create) {
+            string url = "http://192.168.1.6:8080/api/object/transform";
             HttpStatusCode statusCode = APICallerHelper.PostData(url, jsonData);
             if (statusCode == HttpStatusCode.Created) {
                 DataControler.currentIndex = DataControler.objectTransforms.Count;
                 DataControler.objectTransforms.Add(this.objectTransform);
             }
-        } else if(formType == FormType.Update) {
-            url = "";
+        } else if(this.formType == FormType.Update) {
+            string url = "http://192.168.1.6:8080/api/object/transform";
             HttpStatusCode statusCode = APICallerHelper.PostData(url, jsonData);
             if (statusCode == HttpStatusCode.OK) {
                 DataControler.objectTransforms[DataControler.currentIndex] = this.objectTransform;

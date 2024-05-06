@@ -75,30 +75,49 @@ public class ObjectData
 
 public class DataControler : MonoBehaviour
 {
-    public static List<ObjectTransform> objectTransforms;
-    public static List<SensorDevice> sensorDevices;
-    public static SensorDevice currentSensorDevice;
-    public static int currentIndex = 0;
-    private string apiUrl = "http://localhost:8080/api";
-
+    [SerializeField] public static List<ObjectTransform> objectTransforms;
+    [SerializeField] public static List<SensorDevice> sensorDevices;
+    [SerializeField]  public static SensorDevice currentSensorDevice;
+    [SerializeField] public static int currentIndex = 0;
+    private static Boolean isFetched = false;
+    private static string apiUrl = "http://192.168.1.6:8080/api";
+    [SerializeField] public static event System.Action DataReady;
 
     private void Start()
     {
-        ObjectTransformApi();
+        DataControler.fetchData();
     }
 
-    private async void ObjectTransformApi() {
+    private void Update() {
+        if(DataControler.objectTransforms != null) {
+            Debug.Log("Lolll - data");
+        }
+        else {
+            Debug.Log("Yes data");
+        }
+    }
+
+    public static async void fetchData() {
         string data = await APICallerHelper.GetData(apiUrl + "/object/transform/1");
         DataControler.objectTransforms = JsonConvert.DeserializeObject<List<ObjectTransform>>(data);
-    }
-
-    private async void SensorDeviceApi() {
-        string data = await APICallerHelper.GetData(apiUrl + "/station/sensor");
+        data = await APICallerHelper.GetData(apiUrl + "/sensor-device/1");
         DataControler.sensorDevices = JsonConvert.DeserializeObject<List<SensorDevice>>(data);
+        DataControler.isFetched = true;
+        DataReady?.Invoke();
     }
 
+    public static bool IsDataReady()
+    {
+        return isFetched;
+    }
 
+    private static async void ObjectTransformApi() {
+        
+    }
 
+    private static async void SensorDeviceApi() {
+        
+    }
 }
 
 
