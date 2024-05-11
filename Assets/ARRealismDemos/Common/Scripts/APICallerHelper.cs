@@ -11,7 +11,6 @@ public class APICallerHelper : MonoBehaviour
 {
     public static async Task<string> GetData(string url)
     {
-        //Debug.Log(url);
         using (var httpClient = new HttpClient())
         {
             var response = await httpClient.GetAsync(url);
@@ -32,6 +31,25 @@ public class APICallerHelper : MonoBehaviour
     {
         HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
         request.Method = "POST";
+        request.ContentType = "application/json";
+        var postData = Encoding.ASCII.GetBytes(jsonData);
+        request.ContentLength = postData.Length;
+        using (var stream = request.GetRequestStream())
+        {
+            stream.Write(postData, 0, postData.Length);
+        }
+
+        using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+        {
+            return response.StatusCode;
+        }
+    }
+
+
+    public static HttpStatusCode PatchData(string url, string jsonData)
+    {
+        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+        request.Method = "PATCH";
         request.ContentType = "application/json";
         var postData = Encoding.ASCII.GetBytes(jsonData);
         request.ContentLength = postData.Length;

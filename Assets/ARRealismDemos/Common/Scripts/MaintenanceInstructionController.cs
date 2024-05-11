@@ -13,12 +13,13 @@ using TMPro;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
 using UnityEditor;
+using System;
 
 public class MaintenanceInstructionController : MonoBehaviour
 {
     [SerializeField] public GameObject rootObject;
     [SerializeField] public GameObject objectPrefab;
-    private MaintenanceFormControler maintenanceFormControler;
+    public MaintenanceFormControler maintenanceFormControler;
     public GameObject orientedReticleCreate;
     public GameObject editButton;
     public GameObject form;
@@ -29,10 +30,6 @@ public class MaintenanceInstructionController : MonoBehaviour
     public LineRenderer connectLine;
     public TextMeshProUGUI maintenanceInstruction;
     public TextMeshProUGUI maintenanceIndex;
-    private TextMeshProUGUI oldMaintenanceInstruction;
-    private int isCreate = 0;
-    private int isEdit = 0;
-    private int isSave = 0;
     private float transitionTime = 0.5f; // Thời gian chuyển cảnh
     public GameObject currentObject;
     private TouchScreenKeyboard keyboard;
@@ -48,8 +45,6 @@ public class MaintenanceInstructionController : MonoBehaviour
         
         if (DataControler.IsDataReady())
         {
-            this.form.SetActive(false);
-            this.maintenanceFormControler = this.form.GetComponent<MaintenanceFormControler>();
             connectLine.positionCount = 2;
             this.orientedReticleCreate.SetActive(false);
             DisplayObjectAtIndex();
@@ -60,56 +55,61 @@ public class MaintenanceInstructionController : MonoBehaviour
     private void Update()
     {
         currentObject.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
-        // RectTransform rf = currentObject.GetComponent<RectTransform>();
+        
+    }
 
-        // Vector3 objectPosition = rf.position;
-        // Vector3 bottomLeftFront = new Vector3(objectPosition.x - rf.rect.size.x * rf.lossyScale.x/2f, objectPosition.y - rf.rect.size.y * rf.lossyScale.y/2f, objectPosition.z);
-        // connectLine.SetPosition(0, bottomLeftFront);
+    public void FormSubmited() {
+        DisplayObjectAtIndex();
+        SetActiveCurrentObject(true);
+    }
+
+    public void FormCanceled() {
+        DisplayObjectAtIndex();
+        SetActiveCurrentObject(true);
+    }
+
+    public void SetActiveCurrentObject(Boolean active) {
+        this.currentObject.SetActive(active);
     }
 
     public void CreateButtonOnlcick() {
-        currentObject.SetActive(false);
+        // currentObject.SetActive(false);
         orientedReticleCreate.SetActive(true);
-        dropButton.SetActive(true);
+        dropButton.SetActive(true); 
         DataControler.currentIndex = DataControler.objectTransforms.Count;
         this.maintenanceFormControler.SetFormType(FormType.Create);
     }
 
 
     public void EditButtonOnlcick() {
-        currentObject.SetActive(false);
+        // currentObject.SetActive(false);
         orientedReticleCreate.SetActive(true);
         dropButton.SetActive(true);
         this.maintenanceFormControler.SetFormType(FormType.Update);
     }
 
     public void DropButtonOnclick() {
-        if(DataControler.currentIndex == DataControler.objectTransforms.Count) {
+        if(this.maintenanceFormControler.formType == FormType.Create) {
             CreateNewMaintenanceMessage();
             this.dropButton.SetActive(false);
             this.orientedReticleCreate.SetActive(false);
-            this.maintenanceFormControler.SetObjectTransfrom(CreateObjectTransform("This is the message instruction", DataControler.objectTransforms.Count));
+            this.maintenanceFormControler.SetActiveForm(true);
+            this.maintenanceFormControler.SetObjectTransfrom(CreateObjectTransform("This is the message instruction", " ", null, DataControler.objectTransforms.Count, -1));
             this.maintenanceFormControler.SetUpForm();
-            this.form.SetActive(true);
         }
         else {
+            SetPositionCurrentObject();
             this.dropButton.SetActive(false);
             this.orientedReticleCreate.SetActive(false);
-            this.maintenanceFormControler.SetObjectTransfrom(CreateObjectTransform(this.maintenanceInstruction.text, DataControler.currentIndex));
+            this.maintenanceFormControler.SetActiveForm(true);
+            this.maintenanceFormControler.SetObjectTransfrom(CreateObjectTransform(DataControler.objectTransforms[DataControler.currentIndex].maintenanceInstruction, DataControler.objectTransforms[DataControler.currentIndex].videoUrl, DataControler.objectTransforms[DataControler.currentIndex].sensorDevice, DataControler.currentIndex, DataControler.objectTransforms[DataControler.currentIndex].id));
             this.maintenanceFormControler.SetUpForm();
-            this.form.SetActive(true);
         }
     }
 
     public void CreateNewMaintenanceMessage()
     {
-        Quaternion rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
-        currentObject.transform.position = orientedReticleCreate.transform.position + new Vector3(1f, 1f, 1f);
-        currentObject.transform.rotation = rotation;
-        
-        
-        connectLine.SetPosition(0, orientedReticleCreate.transform.position);
-        connectLine.SetPosition(1, currentObject.transform.position);
+        SetPositionCurrentObject();
 
 
         TextMeshProUGUI textMeshPro = maintenanceInstruction.GetComponentInChildren<TextMeshProUGUI>();
@@ -126,9 +126,23 @@ public class MaintenanceInstructionController : MonoBehaviour
         currentObject.SetActive(true);
     }
 
-    public ObjectTransform CreateObjectTransform(string maintenanceInstruction, int index) {
+    public void SetPositionCurrentObject() {
+        Quaternion rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
+        currentObject.transform.position = orientedReticleCreate.transform.position + new Vector3(1f, 1f, 1f);
+        currentObject.transform.rotation = rotation;
+        
+        RectTransform rf = currentObject.GetComponent<RectTransform>();
+        Vector3 objectPosition = rf.position;
+        Vector3 bottomLeftFront = new Vector3(objectPosition.x - rf.rect.size.x * rf.lossyScale.x/2f, objectPosition.y - rf.rect.size.y * rf.lossyScale.y/2f, objectPosition.z);
+        
+        connectLine.SetPosition(0, bottomLeftFront);
+        connectLine.SetPosition(1, orientedReticleCreate.transform.position);
+
+    }
+
+    public ObjectTransform CreateObjectTransform(string maintenanceInstruction, string videoUrl, SensorDevice sensorDevice, int index, int id) {
         Matrix4x4 qrTransform = rootObject.transform.localToWorldMatrix;
-        Matrix4x4 objectTransform = currentObject.transform.localToWorldMatrix;
+        Matrix4x4 objectTransform = orientedReticleCreate.transform.localToWorldMatrix;
         Matrix4x4 objectRelativeTransform = qrTransform.inverse * objectTransform;
         Vector3 objectRelativePosition = objectRelativeTransform.GetColumn(3);
         Quaternion objectRelativeRotation = Quaternion.LookRotation(objectRelativeTransform.GetColumn(2), objectRelativeTransform.GetColumn(1));
@@ -145,11 +159,14 @@ public class MaintenanceInstructionController : MonoBehaviour
         newObject.rotationY = objectRelativeRotation.y;  
         newObject.rotationZ = objectRelativeRotation.z;  
         newObject.rotationW = objectRelativeRotation.w;  
-        newObject.scaleX = 0.08f;
-        newObject.scaleY = 0.03f;
+        newObject.scaleX = 0.01f;
+        newObject.scaleY = 0.005f;
         newObject.scaleZ = 1f;
         newObject.maintenanceInstruction = maintenanceInstruction;
+        newObject.videoUrl = videoUrl;
+        newObject.id = id;
         newObject.index = index;
+        newObject.sensorDevice = sensorDevice;
         return newObject;
     }
 
@@ -173,7 +190,7 @@ public class MaintenanceInstructionController : MonoBehaviour
 
         connectLine.SetPosition(0, bottomLeftFront);
         connectLine.SetPosition(1, rootObject.transform.TransformPoint(objectData.position));
-        // currentObject.transform.rotation = rootObject.transform.rotation * objectData.rotation;
+        currentObject.transform.rotation = rootObject.transform.rotation * objectData.rotation;
         currentObject.transform.localScale = objectData.scale;
 
         TextMeshProUGUI textMeshPro = maintenanceInstruction.GetComponentInChildren<TextMeshProUGUI>();
@@ -200,70 +217,19 @@ public class MaintenanceInstructionController : MonoBehaviour
         yield return new WaitForSeconds(transitionTime);
 
         // Tăng chỉ số hiện tại lên 1 và kiểm tra nếu vượt quá giới hạn của mảng
-        DataControler.currentIndex++;
+        DataControler.currentIndex += 1;
         if (DataControler.currentIndex >= DataControler.objectTransforms.Count)
         {
             // Reset chỉ số về 0 nếu đã đến cuối danh sách
             DataControler.currentIndex = 0;
         }
+        DataControler.UpdateCurrentSensorDevice(DataControler.objectTransforms[DataControler.currentIndex].sensorDevice);
 
         // Hiển thị đối tượng tiếp theo
         DisplayObjectAtIndex();
     }
 
 
-
-    public void saveMaintenanceMessage() {
-
-        Matrix4x4 qrTransform = rootObject.transform.localToWorldMatrix;
-        Matrix4x4 objectTransform = currentObject.transform.localToWorldMatrix;
-        Matrix4x4 objectRelativeTransform = qrTransform.inverse * objectTransform;
-        Vector3 objectRelativePosition = objectRelativeTransform.GetColumn(3);
-        Quaternion objectRelativeRotation = Quaternion.LookRotation(objectRelativeTransform.GetColumn(2), objectRelativeTransform.GetColumn(1));
-        Vector3 objectRelativeScale = new Vector3(objectRelativeTransform.GetColumn(0).magnitude, objectRelativeTransform.GetColumn(1).magnitude, objectRelativeTransform.GetColumn(2).magnitude);
-        
-        
-        ObjectTransform newObject = new ObjectTransform();
-
-        // newObject.stationId = 1;
-        newObject.positionX = objectRelativePosition.x; 
-        newObject.positionY = objectRelativePosition.y; 
-        newObject.positionZ = objectRelativePosition.z; 
-        newObject.rotationX = objectRelativeRotation.x;  
-        newObject.rotationY = objectRelativeRotation.y;  
-        newObject.rotationZ = objectRelativeRotation.z;  
-        newObject.rotationW = objectRelativeRotation.w;  
-        newObject.scaleX = 0.08f;
-        newObject.scaleY = 0.03f;
-        newObject.scaleZ = 1f;
-        // newObject.maintenanceInstruction  = 
-        // newObject.sensorDevice.id = 
-
-
-        SendDataToServer(newObject);
-
-        DataControler.objectTransforms.Add(newObject);
-    }
-
-
-    private void SendDataToServer(ObjectTransform newObject)
-    {
-        HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://localhost:8080/api/object/transform");
-        request.Method = "POST";
-        request.ContentType = "application/json";
-        string jsonData = JsonConvert.SerializeObject(newObject);
-        var postData = Encoding.ASCII.GetBytes(jsonData);
-        request.ContentLength = postData.Length;
-        using (var stream = request.GetRequestStream())
-        {
-            stream.Write(postData, 0, postData.Length);
-        }
-
-        using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-        {
-            // Xử lý phản hồi từ server (nếu cần)
-        }
-    }
 
     private void OnDestroy()
     {

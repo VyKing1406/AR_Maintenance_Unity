@@ -16,7 +16,7 @@ public class Comment
     public int id { get; set; }
     public object objectTransformId { get; set; }
     public string content { get; set; }
-    public DateTime createdDay { get; set; }
+    public string createdDay { get; set; }
     public string userId { get; set; }
 }
 [Serializable]
@@ -73,6 +73,7 @@ public class ObjectData
     }
 }
 
+
 public class DataControler : MonoBehaviour
 {
     [SerializeField] public static List<ObjectTransform> objectTransforms;
@@ -80,8 +81,12 @@ public class DataControler : MonoBehaviour
     [SerializeField]  public static SensorDevice currentSensorDevice;
     [SerializeField] public static int currentIndex = 0;
     private static Boolean isFetched = false;
-    private static string apiUrl = "http://192.168.1.6:8080/api";
+    public static string BASE_URL = "http://192.168.1.2:8080/api";
+    public static string stationName = "air_0001";
+    public static int stationId = 1;
+    public static Boolean isFormCancel = false;
     [SerializeField] public static event System.Action DataReady;
+    [SerializeField] public static event System.Action SensorDeviceUpdate;
 
     private void Start()
     {
@@ -89,19 +94,15 @@ public class DataControler : MonoBehaviour
     }
 
     private void Update() {
-        if(DataControler.objectTransforms != null) {
-            Debug.Log("Lolll - data");
-        }
-        else {
-            Debug.Log("Yes data");
-        }
+
     }
 
     public static async void fetchData() {
-        string data = await APICallerHelper.GetData(apiUrl + "/object/transform/1");
+        string data = await APICallerHelper.GetData(BASE_URL + "/object/transform/1");
         DataControler.objectTransforms = JsonConvert.DeserializeObject<List<ObjectTransform>>(data);
-        data = await APICallerHelper.GetData(apiUrl + "/sensor-device/1");
+        data = await APICallerHelper.GetData(BASE_URL + "/sensor-device/1");
         DataControler.sensorDevices = JsonConvert.DeserializeObject<List<SensorDevice>>(data);
+        UpdateCurrentSensorDevice(DataControler.objectTransforms[DataControler.currentIndex].sensorDevice);
         DataControler.isFetched = true;
         DataReady?.Invoke();
     }
@@ -111,13 +112,20 @@ public class DataControler : MonoBehaviour
         return isFetched;
     }
 
-    private static async void ObjectTransformApi() {
-        
+    public static void UpdateCurrentIndex(int newIndex) {
+        DataControler.currentIndex = newIndex;
     }
 
-    private static async void SensorDeviceApi() {
-        
+    public static void UpdateCurrentSensorDevice(SensorDevice sensorDevice) {
+        DataControler.currentSensorDevice = sensorDevice;
+        SensorDeviceUpdate?.Invoke();
     }
+
+    public static async void UpdateObjectList() {
+        string data = await APICallerHelper.GetData(BASE_URL + "/object/transform/1");
+        DataControler.objectTransforms = JsonConvert.DeserializeObject<List<ObjectTransform>>(data);
+    }
+
 }
 
 
